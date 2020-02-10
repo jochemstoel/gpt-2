@@ -318,7 +318,7 @@ def main():
      
 
                 counter += 1
-                if counter > 1000
+                if counter > 1000:
                     break
         except KeyboardInterrupt:
             push('interrupted')
