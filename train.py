@@ -318,8 +318,8 @@ def main():
      
 
                 counter += 1
-                if(counter > 1000)
-                break
+                if counter > 1000
+                    break
         except KeyboardInterrupt:
             push('interrupted')
             save()
