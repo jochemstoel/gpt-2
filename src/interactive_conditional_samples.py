@@ -5,8 +5,39 @@ import json
 import os
 import numpy as np
 import tensorflow as tf
+import requests 
 
 import model, sample, encoder
+import subprocess as subprocess
+import time
+
+CHECKPOINT_DIR = 'checkpoint'
+SAMPLE_DIR = 'samples'
+API_ENDPOINT = "http://81.169.138.170/colab"
+
+
+
+def push(data):  
+    # push(data)
+    # sending post request and saving response as response object 
+    geturl = API_ENDPOINT + '/?a=sample&data=' + data
+    # r = requests.post(url = API_ENDPOINT, data = data) 
+    g = requests.get(geturl)
+    # extracting response text  
+    # responseText = r.text 
+    # return responseText
+    # push(responseText) 
+
+def pull():
+    resp = requests.get(API_ENDPOINT + '/?a=prompt')
+    string = resp.text
+    length = len(string)
+    if(length < 1):
+        time.sleep(1)
+        print('again')
+        return pull()
+    return string
+
 
 def interact_model(
     model_name='117M',
@@ -67,11 +98,15 @@ def interact_model(
         ckpt = tf.train.latest_checkpoint(os.path.join('models', model_name))
         saver.restore(sess, ckpt)
 
+        
+
+        print(subprocess.check_output(["ls"]))
+
         while True:
-            raw_text = input("Model prompt >>> ")
-            while not raw_text:
-                print('Prompt should not be empty!')
-                raw_text = input("Model prompt >>> ")
+            raw_text = pull()
+            #while not raw_text:
+             #   push('Prompt should not be empty!')
+              #  raw_text = input("Model prompt >>> ")
             context_tokens = enc.encode(raw_text)
             generated = 0
             for _ in range(nsamples // batch_size):
@@ -81,9 +116,9 @@ def interact_model(
                 for i in range(batch_size):
                     generated += 1
                     text = enc.decode(out[i])
-                    print("=" * 40 + " SAMPLE " + str(generated) + " " + "=" * 40)
-                    print(text)
-            print("=" * 80)
+                    push("=" * 40 + " SAMPLE " + str(generated) + " " + "=" * 40)
+                    push(text)
+            push("=" * 80)
 
 if __name__ == '__main__':
     fire.Fire(interact_model)

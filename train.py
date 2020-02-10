@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
+# DEZE TRAIN POST NAAR STRATO
 # Usage:
 #  PYTHONPATH=src ./train --dataset <file|directory|glob>
-
-import argparse
+import requests 
 import json
+import argparse
 import os
 import numpy as np
 import tensorflow as tf
@@ -18,6 +19,7 @@ import memory_saving_gradients
 
 CHECKPOINT_DIR = 'checkpoint'
 SAMPLE_DIR = 'samples'
+API_ENDPOINT = "http://81.169.138.170/colab"
 
 
 parser = argparse.ArgumentParser(
@@ -51,6 +53,22 @@ parser.add_argument('--val_dataset', metavar='PATH', type=str, default=None, hel
 parser.add_argument('--val_batch_size', metavar='SIZE', type=int, default=2, help='Batch size for validation.')
 parser.add_argument('--val_batch_count', metavar='N', type=int, default=40, help='Number of batches for validation.')
 parser.add_argument('--val_every', metavar='STEPS', type=int, default=0, help='Calculate validation loss every STEPS steps.')
+
+
+def push(data):  
+    # print(data)
+    # sending post request and saving response as response object 
+    geturl = API_ENDPOINT + '/?a=foo&data=' + data
+    # r = requests.post(url = API_ENDPOINT, data = data) 
+    ## r = requests.post(url = API_ENDPOINT, json={"key": "value"})
+    g = requests.get(geturl)
+    # extracting response text  
+    # responseText = r.text 
+    # return responseText
+    # print(responseText) 
+
+
+
 
 
 def maketree(path):
@@ -167,10 +185,10 @@ def main():
                 os.path.join('models', args.model_name))
         else:
             ckpt = tf.train.latest_checkpoint(args.restore_from)
-        print('Loading checkpoint', ckpt)
+        push('Loading checkpoint ' + str(ckpt))
         saver.restore(sess, ckpt)
 
-        print('Loading dataset...')
+        push('Loading dataset...')
         chunks = load_dataset(enc, args.dataset, args.combine, encoding=args.encoding)
         data_sampler = Sampler(chunks)
         if args.val_every > 0:
@@ -178,8 +196,8 @@ def main():
                 val_chunks = load_dataset(enc, args.val_dataset, args.combine, encoding=args.encoding)
             else:
                 val_chunks = chunks
-        print('dataset has', data_sampler.total_size, 'tokens')
-        print('Training...')
+        push('dataset has ' + str(data_sampler.total_size) + ' tokens')
+        push('Training...')
 
         if args.val_every > 0:
             # Sample from validation set once with fixed seed to make
@@ -198,9 +216,9 @@ def main():
 
         def save():
             maketree(os.path.join(CHECKPOINT_DIR, args.run_name))
-            print(
-                'Saving',
-                os.path.join(CHECKPOINT_DIR, args.run_name,
+            push(
+                'Saving' + 
+                str(os.path.join(CHECKPOINT_DIR, args.run_name) + 
                              'model-{}').format(counter))
             saver.save(
                 sess,
@@ -210,7 +228,7 @@ def main():
                 fp.write(str(counter) + '\n')
 
         def generate_samples():
-            print('Generating samples...')
+            push('Generating samples...')
             context_tokens = data_sampler.sample(1)
             all_text = []
             index = 0
@@ -224,7 +242,7 @@ def main():
                         index + 1, text)
                     all_text.append(text)
                     index += 1
-            print(text)
+            push(text)
             maketree(os.path.join(SAMPLE_DIR, args.run_name))
             with open(
                     os.path.join(SAMPLE_DIR, args.run_name,
@@ -232,7 +250,7 @@ def main():
                 fp.write('\n'.join(all_text))
 
         def validation():
-            print('Calculating validation loss...')
+            push('Calculating validation loss...')
             losses = []
             for batch in tqdm.tqdm(val_batches):
                 losses.append(sess.run(val_loss, feed_dict={val_context: batch}))
@@ -240,7 +258,7 @@ def main():
             v_summary = sess.run(val_loss_summary, feed_dict={val_loss: v_val_loss})
             summary_log.add_summary(v_summary, counter)
             summary_log.flush()
-            print(
+            push(
                 '[{counter} | {time:2.2f}] validation loss = {loss:2.2f}'
                 .format(
                     counter=counter,
@@ -279,17 +297,31 @@ def main():
                 avg_loss = (avg_loss[0] * 0.99 + v_loss,
                             avg_loss[1] * 0.99 + 1.0)
 
-                print(
-                    '[{counter} | {time:2.2f}] loss={loss:2.2f} avg={avg:2.2f}'
-                    .format(
-                        counter=counter,
-                        time=time.time() - start_time,
-                        loss=v_loss,
-                        avg=avg_loss[0] / avg_loss[1]))
+                # data to be sent to api 
+                # data = '[{counter} | {time:2.2f}] loss={loss:2.2f} avg={avg:2.2f}'.format(counter=counter, time=time.time() - start_time, loss=v_loss, avg=avg_loss[0] / avg_loss[1])
+                
+
+
+                data = {'context':'colab-gpt2',
+                        'from':'stdout',
+                        'counter': str(counter), 
+                        'time': str(time.time() - start_time),  
+                        'loss': str(v_loss),
+                        'avg': str(avg_loss[0] / avg_loss[1]),
+                        # 'data':'[{counter} | {time:2.2f}] loss={loss:2.2f} avg={avg:2.2f}'.format(counter=counter, time=time.time() - start_time, loss=v_loss, avg=avg_loss[0] / avg_loss[1]), 
+                        'language':'python'} 
+                data = '[{counter} | {time:2.2f}] loss={loss:2.2f} avg={avg:2.2f}'.format(counter=counter, time=time.time() - start_time, loss=v_loss, avg=avg_loss[0] / avg_loss[1])
+                # print(json.dumps(data))
+
+                push(json.dumps(data))
+
+     
 
                 counter += 1
+                if(counter > 1000)
+                break
         except KeyboardInterrupt:
-            print('interrupted')
+            push('interrupted')
             save()
 
 
