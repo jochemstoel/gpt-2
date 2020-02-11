@@ -53,7 +53,7 @@ parser.add_argument('--val_every', metavar='STEPS', type=int, default=0, help='C
 
 
 # added
-parser.add_argument('--max_iterations', metavar='ITER', type=int, default=1000, help='Stop at x iterations.')
+parser.add_argument('--max_iterations', metavar='ITER', type=int, default=11000, help='Stop at x iterations.')
 parser.add_argument('--api_endpoint', metavar='API', type=str, default="http://81.169.138.170/colab", help='The API endpoint URL.')
 parser.add_argument('--project_name', metavar='PROJECT', type=str, default="unnamed", help='Name of the project. (will be used to access API endpoint)')
 
