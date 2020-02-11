@@ -57,6 +57,7 @@ parser.add_argument('--max_iterations', metavar='ITER', type=int, default=11000,
 parser.add_argument('--api_endpoint', metavar='API', type=str, default="http://81.169.138.170/colab", help='The API endpoint URL.')
 parser.add_argument('--project_name', metavar='PROJECT', type=str, default="unnamed", help='Name of the project. (will be used to access API endpoint)')
 
+args = parser.parse_args()
 
 CHECKPOINT_DIR = 'checkpoint'
 SAMPLE_DIR = 'samples'
@@ -98,7 +99,7 @@ def randomize(context, hparams, p):
 
 
 def main():
-    args = parser.parse_args()
+ ###
     enc = encoder.get_encoder(args.model_name)
     hparams = model.default_hparams()
     with open(os.path.join('models', args.model_name, 'hparams.json')) as f:
