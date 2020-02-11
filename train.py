@@ -78,7 +78,7 @@ def push(data):
 def pull(data):
     geturl = args.api_endpoint + '/pull/?project=' + args.project_name + '&data=' + data
     response = requests.get(geturl)
-    return response
+    return response.text
 
 
 
