@@ -17,13 +17,10 @@ from load_dataset import load_dataset, Sampler
 from accumulate import AccumulatingOptimizer
 import memory_saving_gradients
 
-CHECKPOINT_DIR = 'checkpoint'
-SAMPLE_DIR = 'samples'
-API_ENDPOINT = "http://81.169.138.170/colab"
 
 
 parser = argparse.ArgumentParser(
-    description='Fine-tune GPT-2 on your custom dataset.',
+    description='Fine-tune GPT-2 on your custom dataset and send all output to API endpoint.',
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 parser.add_argument('--dataset', metavar='PATH', type=str, required=True, help='Input file, directory, or glob pattern (utf-8 text, or preencoded .npz files).')
@@ -55,10 +52,20 @@ parser.add_argument('--val_batch_count', metavar='N', type=int, default=40, help
 parser.add_argument('--val_every', metavar='STEPS', type=int, default=0, help='Calculate validation loss every STEPS steps.')
 
 
+# added
+parser.add_argument('--max_iterations', metavar='ITER', type=int, default=1000, help='Stop at x iterations.')
+parser.add_argument('--api_endpoint', metavar='API', type=str, default="http://81.169.138.170/colab", help='The API endpoint URL.')
+parser.add_argument('--project_name', metavar='PROJECT', type=str, default="unnamed", help='Name of the project. (will be used to access API endpoint)')
+
+
+CHECKPOINT_DIR = 'checkpoint'
+SAMPLE_DIR = 'samples'
+PROJECT_NAME = args.project_name
+
 def push(data):  
     # print(data)
     # sending post request and saving response as response object 
-    geturl = API_ENDPOINT + '/?a=foo&data=' + data
+    geturl = args.api_endpoint + '/?project=' + args.project_name + '&data=' + data
     # r = requests.post(url = API_ENDPOINT, data = data) 
     ## r = requests.post(url = API_ENDPOINT, json={"key": "value"})
     g = requests.get(geturl)
@@ -67,7 +74,10 @@ def push(data):
     # return responseText
     # print(responseText) 
 
-
+def pull(data):
+    geturl = args.api_endpoint + '/pull/?project=' + args.project_name + '&data=' + data
+    response = requests.get(geturl)
+    return response
 
 
 
@@ -318,8 +328,15 @@ def main():
      
 
                 counter += 1
-                if counter > 1000:
+                if counter > args.max_iterations:
                     break
+
+                pulled = pull("")
+                if pulled == "break":
+                    break;
+                else:
+                    print("ignoring " + pulled)
+
         except KeyboardInterrupt:
             push('interrupted')
             save()
